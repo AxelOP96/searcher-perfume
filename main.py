@@ -8,7 +8,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000",
-    "https://frontend-alquimia.vercel.app"],  
+    "https://frontend-alquimia.vercel.app/buscar-nota-perfume"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
