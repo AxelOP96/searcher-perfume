@@ -1,4 +1,4 @@
-﻿    
+    
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
@@ -7,10 +7,8 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://frontend-alquimia.vercel.app"
-    ],  
+    allow_origins=["http://localhost:3000",
+    "https://frontend-alquimia.vercel.app"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -107,25 +105,26 @@ accord_translations = {
 @app.get("/api/perfume")
 def search_perfume(name: str = Query(..., alias="q")):
     normalized_name = name.replace(" ", "-").lower()
-    result = df[df["Perfume"].str.lower().str.contains(normalized_name, na=False)]
+    results = df[df["Perfume"].str.lower().str.contains(normalized_name, na=False)]
 
-    if result.empty:
+    if results.empty:
         return {"message": "Perfume not found", "notes": []}
     
-    perfume = result.iloc[0]  # Tomamos el primero que coincida
-    notes = [
-        perfume.get("mainaccord1"),
-        perfume.get("mainaccord2"),
-        perfume.get("mainaccord3")
-    ]
-    
-    translated_notes = [accord_translations.get(n.lower(), n) for n in notes if pd.notna(n)]
-    return {
-        "perfume": perfume["Perfume"],
-        "brand": perfume["Brand"],
-        #"notes": [n for n in notes if pd.notna(n)]
-        "notes": translated_notes
-    }
+    perfumes_list = []
+    for _, row in results.head(4).iterrows():
+        notes = [
+            row.get("mainaccord1"),
+            row.get("mainaccord2"),
+            row.get("mainaccord3")
+        ]
+        translated_notes = [accord_translations.get(n.lower(), n) for n in notes if pd.notna(n)]
+        perfumes_list.append({
+            "perfume": row["Perfume"],
+            "brand": row["Brand"],
+            "notes": translated_notes
+        })
+
+    return {"results": perfumes_list}
 
 
     
