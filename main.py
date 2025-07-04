@@ -132,14 +132,35 @@ def search_perfume(name: str = Query(..., alias="q")):
 def get_perfume_image(url: str = Query(...)):
     image_url = None
     try:
-        resp = requests.get(url, timeout=5)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(resp.text, "html.parser")
         img_tag = soup.find("img", {"itemprop": "image"})
         if img_tag and img_tag.get("src"):
             image_url = img_tag["src"]
+        else:
+            
+            picture = soup.find("picture")
+            if picture:
+                img_in_picture = picture.find("img")
+                if img_in_picture and img_in_picture.get("src"):
+                    image_url = img_in_picture["src"]
+                else:
+                    
+                    meta_tag = soup.find("meta", {"property": "og:image"})
+                    if meta_tag and meta_tag.get("content"):
+                        image_url = meta_tag["content"]
+            else:
+                
+                meta_tag = soup.find("meta", {"property": "og:image"})
+                if meta_tag and meta_tag.get("content"):
+                    image_url = meta_tag["content"]
 
     except Exception as e:
         print(f"Error scraping image: {e}")
 
     return {"image": image_url}
+
     
