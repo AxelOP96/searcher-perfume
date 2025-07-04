@@ -1,4 +1,6 @@
-    
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC    
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import requests
@@ -163,23 +165,26 @@ def get_perfume_image(url: str = Query(...)):
     #service = Service(ChromeDriverManager().install()) #
     service = Service("/usr/bin/chromedriver")#
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.get(url)
-    driver.implicitly_wait(5)
+    try:
+        driver.get(url)
 
-    imgs = driver.find_elements("tag name", "img")
-    perfume_img = None
+        # Espera hasta que exista al menos un <img> con src que contenga "perfume-thumbs"
+        wait = WebDriverWait(driver, 20)
+        img_element = wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//img[contains(@src, 'perfume-thumbs')]")
+            )
+        )
 
-    for i, im in enumerate(imgs):
-        try:
-            src = im.get_attribute("src")
-            if src and "/mdimg/perfume-thumbs/" in src:
-                perfume_img = src
-                break
-        except Exception as e:
-            print(f"Error en imagen {i}: {e}")
+        # Cuando lo encuentra, obtiene el src
+        perfume_img = img_element.get_attribute("src")
 
-    driver.quit()
+    except Exception as e:
+        print(f"Error al obtener imagen: {e}")
+        perfume_img = None
+
+    finally:
+        driver.quit()
 
     return {"image": perfume_img}
-
 
