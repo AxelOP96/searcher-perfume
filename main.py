@@ -137,30 +137,28 @@ def get_perfume_image(url: str = Query(...)):
         }
         resp = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(resp.text, "html.parser")
+
         img_tag = soup.find("img", {"itemprop": "image"})
         if img_tag and img_tag.get("src"):
             image_url = img_tag["src"]
-        else:
-            
-            picture = soup.find("picture")
-            if picture:
-                img_in_picture = picture.find("img")
-                if img_in_picture and img_in_picture.get("src"):
-                    image_url = img_in_picture["src"]
-                else:
-                    
-                    meta_tag = soup.find("meta", {"property": "og:image"})
-                    if meta_tag and meta_tag.get("content"):
-                        image_url = meta_tag["content"]
-            else:
-                
-                meta_tag = soup.find("meta", {"property": "og:image"})
-                if meta_tag and meta_tag.get("content"):
-                    image_url = meta_tag["content"]
+
+        if not image_url:
+            selector = "div.grid-x > div.cell.small-12 > picture img"
+            img_in_specific_picture = soup.select_one(selector)
+            if img_in_specific_picture and img_in_specific_picture.get("src"):
+                image_url = img_in_specific_picture["src"]
+
+        if not image_url:
+            any_picture_img = soup.select_one("picture img")
+            if any_picture_img and any_picture_img.get("src"):
+                image_url = any_picture_img["src"]
+
+        if not image_url:
+            meta_tag = soup.find("meta", {"property": "og:image"})
+            if meta_tag and meta_tag.get("content"):
+                image_url = meta_tag["content"]
 
     except Exception as e:
         print(f"Error scraping image: {e}")
 
     return {"image": image_url}
-
-    
