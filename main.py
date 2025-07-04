@@ -2,7 +2,8 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
-
+import requests
+from bs4 import BeautifulSoup
 app = FastAPI()
 
 app.add_middleware(
@@ -126,5 +127,18 @@ def search_perfume(name: str = Query(..., alias="q")):
 
     return {"results": perfumes_list}
 
+@app.get("/api/perfume-image")
+def get_perfume_image(url: str = Query(...)):
+    image_url = None
+    try:
+        resp = requests.get(url, timeout=5)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        img_tag = soup.find("img", {"itemprop": "image"})
+        if img_tag and img_tag.get("src"):
+            image_url = img_tag["src"]
 
+    except Exception as e:
+        print(f"Error scraping image: {e}")
+
+    return {"image": image_url}
     
