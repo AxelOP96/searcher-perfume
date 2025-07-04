@@ -122,7 +122,8 @@ def search_perfume(name: str = Query(..., alias="q")):
         perfumes_list.append({
             "perfume": row["Perfume"],
             "brand": row["Brand"],
-            "notes": translated_notes
+            "notes": translated_notes,
+            "url": row.get("url")
         })
 
     return {"results": perfumes_list}
