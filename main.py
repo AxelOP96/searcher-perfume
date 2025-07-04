@@ -168,16 +168,15 @@ def get_perfume_image(url: str = Query(...)):
     try:
         driver.get(url)
 
-        # Espera hasta que exista al menos un <img> con src que contenga "perfume-thumbs"
+        
         wait = WebDriverWait(driver, 20)
-        img_element = wait.until(
-            EC.presence_of_element_located(
-                (By.XPATH, "//img[contains(@src, 'perfume-thumbs')]")
-            )
-        )
-
-        # Cuando lo encuentra, obtiene el src
-        perfume_img = img_element.get_attribute("src")
+        elements = driver.find_elements(By.XPATH, "//img[contains(@src, 'perfume-thumbs')]")
+        
+        if elements:
+            perfume_img = elements[0].get_attribute("src")
+        else:
+            print("No se encontró ninguna imagen con el patrón esperado.")
+            perfume_img = None
 
     except Exception as e:
         print(f"Error al obtener imagen: {e}")
