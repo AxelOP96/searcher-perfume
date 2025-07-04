@@ -152,7 +152,7 @@ def get_perfume_image(url: str = Query(...)):
     chrome_options = Options()
     #chrome_options.binary_location = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"  
     #chrome_options.add_argument("--headless=new")
-    #chrome_options.binary_location = "/usr/bin/chromium-browser"#
+    chrome_options.binary_location = "/usr/bin/chromium"#
     chrome_options.add_argument("--headless")#
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
@@ -160,7 +160,8 @@ def get_perfume_image(url: str = Query(...)):
 
     #service = Service("./chromedriver.exe")
     #driver = webdriver.Chrome(service=service, options=chrome_options)
-    service = Service(ChromeDriverManager().install()) #
+    #service = Service(ChromeDriverManager().install()) #
+    service = Service("/usr/bin/chromedriver")#
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(url)
     driver.implicitly_wait(5)
