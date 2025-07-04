@@ -1,9 +1,13 @@
     
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 app = FastAPI()
 
 app.add_middleware(
@@ -111,6 +115,12 @@ def search_perfume(name: str = Query(..., alias="q")):
     if results.empty:
         return {"message": "Perfume not found", "notes": []}
     
+    #perfume = results.iloc[0]  # Tomamos el primero que coincida
+    #notes = [
+    #    perfume.get("mainaccord1"),
+    #    perfume.get("mainaccord2"),
+    #    perfume.get("mainaccord3")
+    #]
     perfumes_list = []
     for _, row in results.head(4).iterrows():
         notes = [
@@ -127,38 +137,48 @@ def search_perfume(name: str = Query(..., alias="q")):
         })
 
     return {"results": perfumes_list}
+        #translated_notes = [accord_translations.get(n.lower(), n) for n in notes if pd.notna(n)]
+        #return {
+        #    "perfume": perfume["Perfume"],
+        #    "brand": perfume["Brand"],
+        #    #"notes": [n for n in notes if pd.notna(n)]
+        #    "notes": translated_notes
+        #}
 
+
+    
 @app.get("/api/perfume-image")
 def get_perfume_image(url: str = Query(...)):
-    image_url = None
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(resp.text, "html.parser")
+    chrome_options = Options()
+    #chrome_options.binary_location = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"  
+    #chrome_options.add_argument("--headless=new")
+    chrome_options.binary_location = "/usr/bin/chromium-browser"#
+    chrome_options.add_argument("--headless")#
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
-        img_tag = soup.find("img", {"itemprop": "image"})
-        if img_tag and img_tag.get("src"):
-            image_url = img_tag["src"]
+    #service = Service("./chromedriver.exe")
+    #driver = webdriver.Chrome(service=service, options=chrome_options)
+    service = Service(ChromeDriverManager().install()) #
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.get(url)
+    driver.implicitly_wait(5)
 
-        if not image_url:
-            selector = "div.grid-x > div.cell.small-12 > picture img"
-            img_in_specific_picture = soup.select_one(selector)
-            if img_in_specific_picture and img_in_specific_picture.get("src"):
-                image_url = img_in_specific_picture["src"]
+    imgs = driver.find_elements("tag name", "img")
+    perfume_img = None
 
-        if not image_url:
-            any_picture_img = soup.select_one("picture img")
-            if any_picture_img and any_picture_img.get("src"):
-                image_url = any_picture_img["src"]
+    for i, im in enumerate(imgs):
+        try:
+            src = im.get_attribute("src")
+            if src and "/mdimg/perfume-thumbs/" in src:
+                perfume_img = src
+                break
+        except Exception as e:
+            print(f"Error en imagen {i}: {e}")
 
-        if not image_url:
-            meta_tag = soup.find("meta", {"property": "og:image"})
-            if meta_tag and meta_tag.get("content"):
-                image_url = meta_tag["content"]
+    driver.quit()
 
-    except Exception as e:
-        print(f"Error scraping image: {e}")
+    return {"image": perfume_img}
 
-    return {"image": image_url}
+
