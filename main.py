@@ -1,15 +1,9 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC    
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+
 app = FastAPI()
 
 app.add_middleware(
@@ -149,41 +143,23 @@ def search_perfume(name: str = Query(..., alias="q")):
 
 
     
+ZENROWS_API_KEY = "34f48787a0e21abd82d019522938fcb88289c84c"
+
 @app.get("/api/perfume-image")
 def get_perfume_image(url: str = Query(...)):
-    chrome_options = Options()
-    #chrome_options.binary_location = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"  
-    #chrome_options.add_argument("--headless=new")
-    chrome_options.binary_location = "/usr/bin/chromium"#
-    chrome_options.add_argument("--headless=new")#
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-    #service = Service("./chromedriver.exe")
-    #driver = webdriver.Chrome(service=service, options=chrome_options)
-    #service = Service(ChromeDriverManager().install()) #
-    service = Service("/usr/bin/chromedriver")#
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    try:
-        driver.get(url)
-
-        
-        wait = WebDriverWait(driver, 20)
-        elements = driver.find_elements(By.XPATH, "//img[contains(@src, 'perfume-thumbs')]")
-        
-        if elements:
-            perfume_img = elements[0].get_attribute("src")
-        else:
-            print("No se encontró ninguna imagen con el patrón esperado.")
-            perfume_img = None
-
-    except Exception as e:
-        print(f"Error al obtener imagen: {e}")
-        perfume_img = None
-
-    finally:
-        driver.quit()
-
-    return {"image": perfume_img}
+    zenrows_url = "https://api.zenrows.com/v1/"
+    params = {
+        "apikey": ZENROWS_API_KEY,
+        "url": url,
+        "js_render": "true"
+    }
+    response = requests.get(zenrows_url, params=params)
+    if response.status_code != 200:
+        return {"error": "Error fetching page"}
+    soup = BeautifulSoup(response.text, "html.parser")
+    img_element = soup.find("img", src=lambda x: x and "perfume-thumbs" in x)
+    if img_element:
+        return {"image": img_element["src"]}
+    else:
+        return {"image": None}
 
